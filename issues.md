@@ -32,22 +32,21 @@ only style problems but real bugs / vulnerabilities.
 
 | # | Issue | Type | Line(s) | Description | Fix Approach |
 |---|-------|------|---------|-------------|--------------|
-| 14 | E203 whitespace before `:` | Style | 6 | `"light" : 10` | `"light": 10`. |
-| 15 | E302 expected 2 blank lines, found 1 | Style | 40 | Only one blank line before `def saveState`. | Added second blank line. |
-| 16 | E261 at least two spaces before inline comment | Style | 66 | `hubAddress()) # for app setup` | Two spaces before `#`. |
-| 17 | E501 line too long (80 > 79) | Style | 68 | The "Devices on" `print` line is 80 characters. | Extracted `devices_on` list into a variable. |
+| 13 | E203 whitespace before `:` | Style | 6 | `"light" : 10` | `"light": 10`. |
+| 14 | E302 expected 2 blank lines, found 1 | Style | 40 | Only one blank line before `def saveState`. | Added second blank line. |
+| 15 | E261 at least two spaces before inline comment | Style | 66 | `hubAddress()) # for app setup` | Two spaces before `#`. |
+| 16 | E501 line too long (80 > 79) | Style | 68 | The "Devices on" `print` line is 80 characters. | Extracted `devices_on` list into a variable. |
 
-## Expected results
+## Results (from running the tools: `bash run_analysis.sh`)
 
 | Tool | Before | After |
 |------|--------|-------|
-| Bandit | 1 High, 1 Medium, 2 Low (B602, B104, B105, B404) | 0 reported (B404/B603 suppressed with justification) |
-| Pylint | low score (docstring, naming, W0102, W1514, R1710 messages) | ≈ 10.00 / 10 |
-| Flake8 | 4 issues (E203, E302, E261, E501) | 0 |
+| Bandit | 1 High, 1 Medium, 2 Low (B602, B104, B105, B404) | 0 reported (B404 and B603 suppressed with `# nosec` and a written justification) |
+| Pylint | 4.80 / 10 | 10.00 / 10 |
+| Flake8 | 4 issues (E203, E302, E261, E501) | 0 issues |
 
-> The *Before* rows come from reading the code against the tools' rules; run
-> `bash run_analysis.sh` to produce the actual `reports/before` and
-> `reports/after` text files and confirm these numbers.
+Reports: `reports/before/` (original `smart_home_original.py`) and
+`reports/after/` (fixed `smart_home.py`).
 
 ## D. Bug the tools do NOT flag (found by running the program)
 

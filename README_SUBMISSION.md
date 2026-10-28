@@ -3,7 +3,7 @@
 
 | Deliverable | File |
 |---|---|
-| Cleaned code (17 issues across 3 tools) | `smart_home.py` (original kept as `smart_home_original.py`) |
+| Cleaned code (16 issues across 3 tools) | `smart_home.py` (original kept as `smart_home_original.py`) |
 | Issue table | `issues.md` |
 | Reflection answers | `reflection.md` |
 | 3 commits (Bandit, Pylint, Flake8) | `git log --oneline` |
