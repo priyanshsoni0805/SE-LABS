@@ -1,84 +1,107 @@
+"""Smart home device controller.
+
+Adds devices to rooms, toggles them, sets the thermostat within a safe range,
+lists devices by room, reports power use and saves state to home_state.json.
+
+Author: Priyansh Soni (PES1UG24CS344)
+"""
 import json
 import os
 import subprocess  # nosec B404
 from pathlib import Path
 
-# B104: bind to loopback only, not every network interface
+# Bandit B104: bind to loopback only, not every network interface
 HUB_HOST = "127.0.0.1"
 HUB_PORT = 8080
 POWER_USAGE = {"light" : 10, "fan": 60, "thermostat": 1500, "tv": 120}
-# B105: secret comes from the environment, never from source code
+MIN_TEMP = 16
+MAX_TEMP = 30
+# Bandit B105: secret comes from the environment, never from source code
 HUB_PASSWORD = os.environ.get("HUB_PASSWORD", "")
 SCENES_DIR = Path(__file__).resolve().parent / "scenes"
-devices = {}
+DEVICES = {}
 
 
-def addDevice(deviceName, kind, room="Living Room", settings={}):
-    devices[deviceName] = {"kind": kind, "room": room, "on": False,
-                           "settings": settings}
+def add_device(device_name, kind, room="Living Room", settings=None):
+    """Register a device. Each device gets its own settings dictionary."""
+    DEVICES[device_name] = {"kind": kind, "room": room, "on": False,
+                            "settings": dict(settings) if settings else {}}
 
 
-def toggleDevice(deviceName):
-    if deviceName in devices:
-        devices[deviceName]["on"] = not devices[deviceName]["on"]
-        return devices[deviceName]["on"]
-    print("Device not found:", deviceName)
+def toggle_device(device_name):
+    """Flip a device on/off and return its new state (None if unknown)."""
+    if device_name in DEVICES:
+        DEVICES[device_name]["on"] = not DEVICES[device_name]["on"]
+        return DEVICES[device_name]["on"]
+    print("Device not found:", device_name)
+    return None
 
 
-def setTemperature(deviceName, value):
-    device = devices[deviceName]
-    if device["kind"] != "thermostat":
-        print(deviceName, "is not a thermostat")
+def set_temperature(device_name, value):
+    """Set a thermostat's temperature, clamped to MIN_TEMP..MAX_TEMP."""
+    device = DEVICES.get(device_name)
+    if device is None:
+        print("Device not found:", device_name)
         return False
-    device["settings"]["temperature"] = min(max(value, 16), 30)
+    if device["kind"] != "thermostat":
+        print(device_name, "is not a thermostat")
+        return False
+    device["settings"]["temperature"] = min(max(value, MIN_TEMP), MAX_TEMP)
     return True
 
 
-def devicesInRoom(room):
-    return [name for name, info in devices.items() if info["room"] == room]
+def devices_in_room(room):
+    """Return the names of all devices in the given room."""
+    return [name for name, info in DEVICES.items() if info["room"] == room]
 
 
-def powerUsage():
-    active = [info for info in devices.values() if info["on"]]
+def power_usage():
+    """Return the total power draw (W) of all devices that are on."""
+    active = [info for info in DEVICES.values() if info["on"]]
     return sum(POWER_USAGE.get(info["kind"], 0) for info in active)
 
-def saveState(fileName="home_state.json"):
-    with open(fileName, "w") as f:
-        json.dump(devices, f, indent=2)
+def save_state(file_name="home_state.json"):
+    """Write the current home state to a JSON file."""
+    with open(file_name, "w", encoding="utf-8") as state_file:
+        json.dump(DEVICES, state_file, indent=2)
 
 
-def hubAddress():
+def hub_address():
+    """Return the hub address as host:port."""
     return HUB_HOST + ":" + str(HUB_PORT)
 
 
-def runScene(sceneScript):
-    # B602: no shell. Only plain *.sh files inside SCENES_DIR may run, so a
-    # name like "x; rm -rf ~" or "../evil.sh" is rejected, not executed.
-    script = SCENES_DIR / sceneScript
-    if (Path(sceneScript).name != sceneScript or script.suffix != ".sh"
+def run_scene(scene_script):
+    """Run a *.sh scene script from the scenes folder (no shell involved)."""
+    # Bandit B602: only plain *.sh files inside SCENES_DIR may run, so a name
+    # like "x; rm -rf ~" or "../evil.sh" is rejected, not executed.
+    script = SCENES_DIR / scene_script
+    if (Path(scene_script).name != scene_script or script.suffix != ".sh"
             or not script.is_file()):
-        raise ValueError("Invalid scene script: " + sceneScript)
+        raise ValueError("Invalid scene script: " + scene_script)
     # Arguments are a list and the script name is validated above, so this
     # call cannot be used for command injection.
     subprocess.run(["/bin/bash", str(script)], check=True)  # nosec B603
 
 
 def main():
-    addDevice("Ceiling Light", "light")
-    addDevice("Bedroom Fan", "fan", "Bedroom")
-    addDevice("Thermostat", "thermostat", "Bedroom")
-    addDevice("Smart TV", "tv")
-    toggleDevice("Ceiling Light")
-    toggleDevice("Thermostat")
-    toggleDevice("Garage Door")
-    setTemperature("Thermostat", 35)
-    setTemperature("Ceiling Light", 20)
-    print("Bedroom devices:", devicesInRoom("Bedroom"))
-    print("Current power use (W):", powerUsage())
-    print("Hub address:", hubAddress()) # for app setup
-    print("Light settings:", devices["Ceiling Light"]["settings"])
-    print("Devices on:", [name for name, info in devices.items() if info["on"]])
-    saveState()
+    """Run a short demonstration."""
+    add_device("Ceiling Light", "light")
+    add_device("Bedroom Fan", "fan", "Bedroom")
+    add_device("Thermostat", "thermostat", "Bedroom")
+    add_device("Smart TV", "tv")
+    toggle_device("Ceiling Light")
+    toggle_device("Thermostat")
+    toggle_device("Garage Door")
+    set_temperature("Thermostat", 35)
+    set_temperature("Ceiling Light", 20)
+    print("Bedroom devices:", devices_in_room("Bedroom"))
+    print("Current power use (W):", power_usage())
+    print("Hub address:", hub_address()) # for app setup
+    print("Light settings:", DEVICES["Ceiling Light"]["settings"])
+    print("Devices on:", [name for name, info in DEVICES.items() if info["on"]])
+    save_state()
 
 
-main()
+if __name__ == "__main__":
+    main()
