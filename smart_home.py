@@ -1,10 +1,15 @@
 import json
-import subprocess
+import os
+import subprocess  # nosec B404
+from pathlib import Path
 
-HUB_HOST = "0.0.0.0"
+# B104: bind to loopback only, not every network interface
+HUB_HOST = "127.0.0.1"
 HUB_PORT = 8080
 POWER_USAGE = {"light" : 10, "fan": 60, "thermostat": 1500, "tv": 120}
-HUB_PASSWORD = "smarthome-demo"
+# B105: secret comes from the environment, never from source code
+HUB_PASSWORD = os.environ.get("HUB_PASSWORD", "")
+SCENES_DIR = Path(__file__).resolve().parent / "scenes"
 devices = {}
 
 
@@ -47,8 +52,15 @@ def hubAddress():
 
 
 def runScene(sceneScript):
-    # Helper kept for the lab: not called by the demo
-    subprocess.call("bash scenes/" + sceneScript, shell=True)
+    # B602: no shell. Only plain *.sh files inside SCENES_DIR may run, so a
+    # name like "x; rm -rf ~" or "../evil.sh" is rejected, not executed.
+    script = SCENES_DIR / sceneScript
+    if (Path(sceneScript).name != sceneScript or script.suffix != ".sh"
+            or not script.is_file()):
+        raise ValueError("Invalid scene script: " + sceneScript)
+    # Arguments are a list and the script name is validated above, so this
+    # call cannot be used for command injection.
+    subprocess.run(["/bin/bash", str(script)], check=True)  # nosec B603
 
 
 def main():
