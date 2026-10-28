@@ -13,7 +13,7 @@ from pathlib import Path
 # Bandit B104: bind to loopback only, not every network interface
 HUB_HOST = "127.0.0.1"
 HUB_PORT = 8080
-POWER_USAGE = {"light" : 10, "fan": 60, "thermostat": 1500, "tv": 120}
+POWER_USAGE = {"light": 10, "fan": 60, "thermostat": 1500, "tv": 120}
 MIN_TEMP = 16
 MAX_TEMP = 30
 # Bandit B105: secret comes from the environment, never from source code
@@ -60,6 +60,7 @@ def power_usage():
     active = [info for info in DEVICES.values() if info["on"]]
     return sum(POWER_USAGE.get(info["kind"], 0) for info in active)
 
+
 def save_state(file_name="home_state.json"):
     """Write the current home state to a JSON file."""
     with open(file_name, "w", encoding="utf-8") as state_file:
@@ -97,9 +98,10 @@ def main():
     set_temperature("Ceiling Light", 20)
     print("Bedroom devices:", devices_in_room("Bedroom"))
     print("Current power use (W):", power_usage())
-    print("Hub address:", hub_address()) # for app setup
+    print("Hub address:", hub_address())  # for app setup
     print("Light settings:", DEVICES["Ceiling Light"]["settings"])
-    print("Devices on:", [name for name, info in DEVICES.items() if info["on"]])
+    devices_on = [name for name, info in DEVICES.items() if info["on"]]
+    print("Devices on:", devices_on)
     save_state()
 
 
